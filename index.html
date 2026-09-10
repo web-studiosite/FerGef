@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEF SaaS - Login e Acesso</title>
+  <meta name="description" content="Acesse o GEF SaaS - Sistema de Gestão Empresarial e PDV multi-perfil">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <!-- Supabase CDN & Lucide Icons CDN -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/js/comum.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --input-bg: #0f172a;
+      --input-border: #475569;
+      --success: #10b981;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-container {
+      width: 100%;
+      max-width: 440px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+    }
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .logo-text {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+    }
+    .logo-text span {
+      color: #60a5fa;
+      font-weight: 600;
+      font-size: 16px;
+      margin-left: 4px;
+      background: rgba(37, 99, 235, 0.2);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(96, 165, 250, 0.3);
+    }
+    .form-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .form-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .form-header p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-wrapper i {
+      position: absolute;
+      left: 14px;
+      color: var(--text-muted);
+      width: 18px;
+      height: 18px;
+    }
+    .form-control {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 10px;
+      padding: 12px 14px 12px 42px;
+      font-size: 14px;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    .btn-primary {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    .btn-primary:active {
+      transform: scale(0.99);
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .demo-profiles {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--card-border);
+    }
+    .demo-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .role-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: #cbd5e1;
+      font-size: 12px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+    .role-btn:hover {
+      background: rgba(37, 99, 235, 0.15);
+      border-color: rgba(96, 165, 250, 0.4);
+      color: #fff;
+    }
+    .role-btn.full-width {
+      grid-column: span 2;
+    }
+    .role-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #334155;
+      color: #94a3b8;
+    }
+    .db-badge {
+      margin-top: 16px;
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #1e293b;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .config-link {
+      color: #60a5fa;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .config-link:hover {
+      text-decoration: underline;
+    }
+    /* Modal de Configuração Supabase */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
+    }
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-container" id="loginCard">
+    <!-- Header com Logo GEF SaaS -->
+    <div class="logo-badge">
+      <div class="logo-icon">
+        <i data-lucide="layers"></i>
+      </div>
+      <div class="logo-text">GEF <span>SaaS</span></div>
+    </div>
+
+    <div class="form-header">
+      <h2>Acesse sua conta</h2>
+      <p>Informe suas credenciais ou selecione um perfil demonstrativo</p>
+    </div>
+
+    <!-- Formulário de Login -->
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="emailInput">E-mail Corporativo</label>
+        <div class="input-wrapper">
+          <i data-lucide="mail"></i>
+          <input type="email" id="emailInput" class="form-control" placeholder="ex: admin@gef.com" required value="admin@gef.com">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="passwordInput">Senha de Acesso</label>
+        <div class="input-wrapper">
+          <i data-lucide="lock"></i>
+          <input type="password" id="passwordInput" class="form-control" placeholder="••••••••" required value="123456">
+        </div>
+      </div>
+
+      <button type="submit" id="btnLogin" class="btn-primary">
+        <i data-lucide="log-in"></i>
+        <span id="btnLoginText">Entrar no Sistema</span>
+      </button>
+    </form>
+
+    <!-- Seletor Rápido de Perfis de Teste -->
+    <div class="demo-profiles">
+      <div class="demo-title">
+        <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
+        Acesso Rápido por Perfil (Demo)
+      </div>
+      <div class="role-grid">
+        <button type="button" class="role-btn" onclick="fillAndLogin('super@gef.com', '123456')">
+          <i data-lucide="crown" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+          <div>
+            <strong>Super Admin</strong>
+            <div class="role-badge">super.html</div>
+          </div>
+        </button>
+
+        <button type="button" class="role-btn" onclick="fillAndLogin('admin@gef.com', '123456')">
+          <i data-lucide="briefcase" style="width: 16px; height: 16px; color: #3b82f6;"></i>
+          <div>
+            <strong>Admin / Gestor</strong>
+            <div class="role-badge">admin.html</div>
+          </div>
+        </button>
+
+        <button type="button" class="role-btn" onclick="fillAndLogin('caixa@gef.com', '123456')">
+          <i data-lucide="shopping-cart" style="width: 16px; height: 16px; color: #10b981;"></i>
+          <div>
+            <strong>Operador Caixa</strong>
+            <div class="role-badge">caixa.html</div>
+          </div>
+        </button>
+
+        <button type="button" class="role-btn" onclick="fillAndLogin('estoquista@gef.com', '123456')">
+          <i data-lucide="package" style="width: 16px; height: 16px; color: #8b5cf6;"></i>
+          <div>
+            <strong>Estoquista</strong>
+            <div class="role-badge">estoquista.html</div>
+          </div>
+        </button>
+
+        <button type="button" class="role-btn full-width" onclick="fillAndLogin('embaixador@gef.com', '123456')">
+          <i data-lucide="award" style="width: 16px; height: 16px; color: #ec4899;"></i>
+          <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+            <strong>Portal do Embaixador</strong>
+            <span class="role-badge">embaixador.html</span>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Status do Supabase & Configuração -->
+    <div class="db-badge">
+      <div>
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Modo Demonstração Ativo</span>
+      </div>
+      <a class="config-link" onclick="openConfigModal()">Configurar Supabase</a>
+    </div>
+  </div>
+
+  <!-- Modal de Conexão Supabase Real -->
+  <div class="modal-overlay" id="configModal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 600;">Configurar Conexão Supabase</h3>
+        <button onclick="closeConfigModal()" style="background: none; border: none; color: #94a3b8; cursor: pointer;">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <p style="font-size: 13px; color: #94a3b8; margin-bottom: 16px;">
+        Insira a URL e a Chave Pública (Anon Key) do seu projeto Supabase para conectar às tabelas reais do banco.
+      </p>
+      <div class="form-group">
+        <label>Supabase Project URL</label>
+        <input type="text" id="cfgUrl" class="form-control" style="padding-left: 12px;" placeholder="https://xyzcompany.supabase.co">
+      </div>
+      <div class="form-group">
+        <label>Supabase Anon Key</label>
+        <input type="password" id="cfgKey" class="form-control" style="padding-left: 12px;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
+      </div>
+      <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px;">
+        <button type="button" onclick="resetConfig()" style="background: #334155; color: #fff; border: none; border-radius: 8px; padding: 10px 14px; font-size: 13px; cursor: pointer;">
+          Restaurar Demo
+        </button>
+        <button type="button" onclick="saveConfig()" class="btn-primary" style="width: auto; padding: 10px 20px;">
+          Salvar e Reconectar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Inicializa ícones Lucide
+    lucide.createIcons();
+
+    // Atualiza status Supabase na tela
+    function updateStatusIndicator() {
+      const isLive = window.GEF && window.GEF.isLiveSupabase;
+      const dot = document.getElementById('statusDot');
+      const txt = document.getElementById('statusText');
+      if (isLive) {
+        dot.style.background = '#10b981';
+        txt.textContent = 'Supabase Conectado (Live)';
+      } else {
+        dot.style.background = '#38bdf8';
+        txt.textContent = 'Banco Integrado (Offline/Demo)';
+      }
+    }
+    updateStatusIndicator();
+
+    // Submissão do Formulário de Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+      await executeLogin(email, password);
+    });
+
+    async function executeLogin(email, password) {
+      const btn = document.getElementById('btnLogin');
+      const btnText = document.getElementById('btnLoginText');
+      btn.disabled = true;
+      btnText.textContent = 'Verificando perfil...';
+
+      try {
+        const user = await window.GEF.db.login(email, password);
+        window.GEF.showToast(`Bem-vindo, ${user.nome}! Redirecionando...`, 'success');
+
+        // Auditoria de Login
+        await window.GEF.db.registrarAuditoria({
+          empresa_id: user.empresa_id,
+          usuario_id: user.id,
+          acao: 'LOGIN',
+          tabela_afetada: 'perfis',
+          registro_id: user.id,
+          detalhes: { role: user.role, email: user.email }
+        });
+
+        // Redirecionamento estrito por Perfil
+        setTimeout(() => {
+          window.GEF.redirectByRole(user.role);
+        }, 500);
+
+      } catch (err) {
+        window.GEF.showToast(err.message || 'Erro ao realizar login', 'error');
+        btn.disabled = false;
+        btnText.textContent = 'Entrar no Sistema';
+      }
+    }
+
+    function fillAndLogin(email, password) {
+      document.getElementById('emailInput').value = email;
+      document.getElementById('passwordInput').value = password;
+      executeLogin(email, password);
+    }
+
+    // Modal de Configurações
+    function openConfigModal() {
+      document.getElementById('cfgUrl').value = localStorage.getItem('GEF_CUSTOM_SUPABASE_URL') || '';
+      document.getElementById('cfgKey').value = localStorage.getItem('GEF_CUSTOM_SUPABASE_KEY') || '';
+      document.getElementById('configModal').style.display = 'flex';
+    }
+
+    function closeConfigModal() {
+      document.getElementById('configModal').style.display = 'none';
+    }
+
+    function saveConfig() {
+      const url = document.getElementById('cfgUrl').value.trim();
+      const key = document.getElementById('cfgKey').value.trim();
+      if (url && key) {
+        localStorage.setItem('GEF_CUSTOM_SUPABASE_URL', url);
+        localStorage.setItem('GEF_CUSTOM_SUPABASE_KEY', key);
+        window.location.reload();
+      } else {
+        alert('Por favor, preencha a URL e a Anon Key');
+      }
+    }
+
+    function resetConfig() {
+      localStorage.removeItem('GEF_CUSTOM_SUPABASE_URL');
+      localStorage.removeItem('GEF_CUSTOM_SUPABASE_KEY');
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>

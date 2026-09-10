@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEF SaaS - Entrada de Estoque</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/js/comum.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Header */
+    header {
+      background: #0f172a;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    .brand-title span {
+      color: #c084fc;
+      font-size: 13px;
+      background: rgba(139,92,246,0.2);
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-left: 4px;
+    }
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+    .role-tag {
+      background: #8b5cf6;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .btn-logout {
+      background: rgba(239,68,68,0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.3);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Main */
+    main {
+      flex: 1;
+      padding: 28px;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .form-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 26px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group.full { grid-column: span 2; }
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .form-control {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 14px;
+      color: #fff;
+      outline: none;
+    }
+    .form-control:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 2px rgba(139,92,246,0.2);
+    }
+
+    /* Caixa de Projeção / Calculadora */
+    .projection-box {
+      grid-column: span 2;
+      background: rgba(15,23,42,0.6);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .proj-item h5 { font-size: 11px; text-transform: uppercase; color: var(--text-muted); }
+    .proj-item p { font-size: 18px; font-weight: 700; margin-top: 4px; color: #34d399; }
+
+    .btn-submit {
+      grid-column: span 2;
+      background: #8b5cf6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover { background: #7c3aed; }
+
+    /* Tabela de Movimentações */
+    .history-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .table-responsive { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      background: rgba(15,23,42,0.8);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 11px;
+      text-align: left;
+    }
+    td { padding: 12px 14px; border-bottom: 1px solid rgba(51,65,85,0.4); color: #cbd5e1; }
+    .badge-entrada {
+      background: rgba(16,185,129,0.15);
+      color: #34d399;
+      border: 1px solid rgba(16,185,129,0.3);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <a href="/estoquista.html" class="brand">
+      <div class="brand-icon"><i data-lucide="package"></i></div>
+      <div class="brand-title">GEF <span>Estoque</span></div>
+    </a>
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div class="user-badge">
+        <span class="role-tag">ESTOQUISTA</span>
+        <span id="userName">Roberto Santos</span>
+      </div>
+      <a href="/admin.html" style="color: #94a3b8; font-size: 12px; text-decoration: none;">Painel Geral</a>
+      <button class="btn-logout" onclick="window.GEF.logout()">
+        <i data-lucide="log-out" style="width: 15px; height: 15px;"></i> Sair
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Formulário Entrada de Estoque -->
+    <div class="form-card">
+      <div class="card-header">
+        <div class="card-title">
+          <i data-lucide="arrow-down-circle" style="color: #a78bfa;"></i>
+          Registrar Entrada de Mercadoria (movimentacoes_estoque)
+        </div>
+      </div>
+
+      <form id="formEntradaEstoque">
+        <div class="form-grid">
+          <!-- Selecionar Produto -->
+          <div class="form-group full">
+            <label for="selProduto">Produto para Entrada</label>
+            <select id="selProduto" class="form-control" required onchange="onSelectProduto()"></select>
+          </div>
+
+          <!-- Tipo (tipo = entrada) -->
+          <div class="form-group">
+            <label>Tipo de Movimentação</label>
+            <input type="text" id="tipoMov" class="form-control" value="entrada" readonly style="background: rgba(15,23,42,0.8); color: #34d399; font-weight: 700;">
+          </div>
+
+          <!-- Quantidade -->
+          <div class="form-group">
+            <label for="inpQuantidade">Quantidade de Entrada</label>
+            <input type="number" id="inpQuantidade" class="form-control" min="1" value="10" required oninput="recalcValues()">
+          </div>
+
+          <!-- Custo Unitário -->
+          <div class="form-group">
+            <label for="inpCustoUnitario">Custo Unitário da Remessa (R$)</label>
+            <input type="number" step="0.01" id="inpCustoUnitario" class="form-control" placeholder="0.00" required oninput="recalcFromCusto()">
+          </div>
+
+          <!-- Margem Sugerida (%) OU Preço Sugerido (R$) -->
+          <div class="form-group">
+            <label for="inpMargem">Margem de Lucro Sugerida (%)</label>
+            <input type="number" step="0.1" id="inpMargem" class="form-control" value="70.0" oninput="calcPrecoByMargem()">
+          </div>
+
+          <div class="form-group full">
+            <label for="inpPrecoSugerido">Preço de Venda Sugerido (R$)</label>
+            <input type="number" step="0.01" id="inpPrecoSugerido" class="form-control" style="font-size: 16px; font-weight: 700; color: #60a5fa;" required oninput="calcMargemByPreco()">
+          </div>
+
+          <!-- Painel de Projeção -->
+          <div class="projection-box">
+            <div class="proj-item">
+              <h5>Estoque Atual</h5>
+              <p id="projEstoqueAtual" style="color: #94a3b8;">0 un</p>
+            </div>
+            <div class="proj-item">
+              <h5>Novo Saldo Resultante</h5>
+              <p id="projEstoqueResultante" style="color: #38bdf8;">0 un</p>
+            </div>
+            <div class="proj-item">
+              <h5>Lucro Bruto Unitário</h5>
+              <p id="projLucroUnitario">R$ 0,00</p>
+            </div>
+          </div>
+
+          <button type="submit" id="btnSalvarEntrada" class="btn-submit">
+            <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+            Confirmar Entrada e Atualizar Estoque
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Histórico Recente de Entradas -->
+    <div class="history-card">
+      <div class="card-title" style="margin-bottom: 18px;">
+        <i data-lucide="history" style="color: #60a5fa;"></i>
+        Últimas Movimentações Registradas
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Produto</th>
+              <th>Tipo</th>
+              <th>Quantidade</th>
+              <th>Custo Unit.</th>
+              <th>Preço Sugerido</th>
+              <th>Operador</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyHistorico">
+            <tr><td colspan="7" style="text-align: center; padding: 20px;">Carregando histórico...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Validação de Perfil: estoquista, admin, super_admin
+    const currentUser = window.GEF.requireAuth(['estoquista', 'admin', 'super_admin']);
+    if (currentUser) {
+      document.getElementById('userName').textContent = currentUser.nome;
+    }
+
+    let produtos = [];
+    let movimentacoes = [];
+
+    async function loadData() {
+      try {
+        [produtos, movimentacoes] = await Promise.all([
+          window.GEF.db.getProdutos(currentUser.empresa_id),
+          window.GEF.db.getMovimentacoesEstoque(currentUser.empresa_id)
+        ]);
+
+        populateSelect();
+        renderHistorico();
+      } catch (err) {
+        console.error('Erro ao carregar produtos do estoque:', err);
+      }
+    }
+
+    function populateSelect() {
+      const sel = document.getElementById('selProduto');
+      sel.innerHTML = produtos.map(p => `
+        <option value="${p.id}" data-estoque="${p.estoque_atual}" data-custo="${p.custo}" data-preco="${p.preco_venda}">
+          ${p.nome} (Código: ${p.codigo || '-'}) - Estoque Atual: ${p.estoque_atual} un
+        </option>
+      `).join('');
+
+      onSelectProduto();
+    }
+
+    function onSelectProduto() {
+      const sel = document.getElementById('selProduto');
+      const selectedOption = sel.options[sel.selectedIndex];
+      if (!selectedOption) return;
+
+      const custo = Number(selectedOption.dataset.custo || 10);
+      const preco = Number(selectedOption.dataset.preco || 18);
+
+      document.getElementById('inpCustoUnitario').value = custo.toFixed(2);
+      document.getElementById('inpPrecoSugerido').value = preco.toFixed(2);
+
+      if (custo > 0) {
+        const margem = (((preco - custo) / custo) * 100).toFixed(1);
+        document.getElementById('inpMargem').value = margem;
+      }
+
+      recalcValues();
+    }
+
+    // Calcula Preço Sugerido via % de margem
+    function calcPrecoByMargem() {
+      const custo = Number(document.getElementById('inpCustoUnitario').value) || 0;
+      const margem = Number(document.getElementById('inpMargem').value) || 0;
+      const preco = custo * (1 + (margem / 100));
+      document.getElementById('inpPrecoSugerido').value = preco.toFixed(2);
+      recalcValues();
+    }
+
+    // Calcula Margem via Valor de Preço Sugerido
+    function calcMargemByPreco() {
+      const custo = Number(document.getElementById('inpCustoUnitario').value) || 0;
+      const preco = Number(document.getElementById('inpPrecoSugerido').value) || 0;
+      if (custo > 0) {
+        const margem = (((preco - custo) / custo) * 100).toFixed(1);
+        document.getElementById('inpMargem').value = margem;
+      }
+      recalcValues();
+    }
+
+    function recalcFromCusto() {
+      calcPrecoByMargem();
+    }
+
+    function recalcValues() {
+      const sel = document.getElementById('selProduto');
+      const selectedOption = sel.options[sel.selectedIndex];
+      if (!selectedOption) return;
+
+      const estoqueAtual = Number(selectedOption.dataset.estoque || 0);
+      const qtdEntrada = Number(document.getElementById('inpQuantidade').value) || 0;
+      const custo = Number(document.getElementById('inpCustoUnitario').value) || 0;
+      const preco = Number(document.getElementById('inpPrecoSugerido').value) || 0;
+
+      document.getElementById('projEstoqueAtual').textContent = `${estoqueAtual} un`;
+      document.getElementById('projEstoqueResultante').textContent = `${estoqueAtual + qtdEntrada} un`;
+      document.getElementById('projLucroUnitario').textContent = window.GEF.formatCurrency(Math.max(0, preco - custo));
+    }
+
+    // Submissão: Salva em movimentacoes_estoque e atualiza produtos.estoque_atual
+    document.getElementById('formEntradaEstoque').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnSalvarEntrada');
+      btn.disabled = true;
+
+      const produto_id = document.getElementById('selProduto').value;
+      const tipo = document.getElementById('tipoMov').value;
+      const quantidade = Number(document.getElementById('inpQuantidade').value);
+      const custo_unitario = Number(document.getElementById('inpCustoUnitario').value);
+      const preco_sugerido = Number(document.getElementById('inpPrecoSugerido').value);
+
+      try {
+        await window.GEF.db.addMovimentacaoEstoque({
+          empresa_id: currentUser.empresa_id,
+          produto_id,
+          tipo,
+          quantidade,
+          custo_unitario,
+          preco_sugerido,
+          usuario_id: currentUser.id
+        });
+
+        window.GEF.showToast('Entrada de estoque realizada com sucesso!', 'success');
+        await loadData();
+      } catch (err) {
+        console.error(err);
+        window.GEF.showToast('Erro ao registrar entrada: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    function renderHistorico() {
+      const tbody = document.getElementById('tbodyHistorico');
+      if (movimentacoes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 20px;">Nenhuma movimentação registrada.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = movimentacoes.map(m => `
+        <tr>
+          <td>${window.GEF.formatDate(m.created_at)}</td>
+          <td><strong>${m.produtos?.nome || 'Produto ' + m.produto_id}</strong></td>
+          <td><span class="badge-entrada">ENTRADA</span></td>
+          <td><strong style="color: #38bdf8;">+${m.quantidade} un</strong></td>
+          <td>${window.GEF.formatCurrency(m.custo_unitario)}</td>
+          <td style="color: #34d399; font-weight: 700;">${window.GEF.formatCurrency(m.preco_sugerido)}</td>
+          <td>${m.perfis?.nome || currentUser.nome}</td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // Inicia
+    loadData();
+    lucide.createIcons();
+  </script>
+</body>
+</html>

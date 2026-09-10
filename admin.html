@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEF SaaS - Painel Administrativo</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/js/comum.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #0b1120;
+      --sidebar: #0f172a;
+      --card: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Header */
+    header {
+      background: #0f172a;
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .brand-title { font-size: 18px; font-weight: 800; }
+    .brand-title span {
+      color: #60a5fa;
+      font-size: 12px;
+      background: rgba(37,99,235,0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--card-border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+    .btn-logout {
+      background: rgba(239,68,68,0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.3);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Layout com Sidebar e Content */
+    .app-layout {
+      display: flex;
+      flex: 1;
+    }
+    .sidebar {
+      width: 250px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--card-border);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      color: var(--text-muted);
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
+    .nav-item.active { background: #2563eb; color: #fff; font-weight: 600; }
+
+    .main-content {
+      flex: 1;
+      padding: 28px;
+      overflow-y: auto;
+      max-width: 1400px;
+    }
+
+    /* Cards e Containers */
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+    .content-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .section-title { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+
+    /* Dashboard Widgets */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .metric-box {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .metric-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .metric-box h4 { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+    .metric-box p { font-size: 24px; font-weight: 700; color: #fff; margin-top: 4px; }
+
+    /* Tabelas */
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      background: rgba(15,23,42,0.8);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--card-border);
+      text-transform: uppercase;
+      font-size: 11px;
+      text-align: left;
+    }
+    td { padding: 12px 14px; border-bottom: 1px solid rgba(51,65,85,0.4); }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Botões */
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-edit { background: #3b82f6; color: #fff; }
+    .btn-delete { background: #ef4444; color: #fff; }
+
+    /* Formulários e Modais */
+    .form-control {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-control:focus { border-color: var(--primary); }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .modal-dialog {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 520px;
+      padding: 24px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-danger { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+    .badge-success { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+    .badge-warning { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <a href="/admin.html" class="brand">
+      <div class="brand-icon"><i data-lucide="layers"></i></div>
+      <div class="brand-title">GEF <span>SaaS</span></div>
+    </a>
+    <div class="header-right">
+      <div class="user-pill">
+        <i data-lucide="shield" style="width: 14px; height: 14px; color: #60a5fa;"></i>
+        <span id="headerUser">Administrador</span>
+      </div>
+      <button class="btn-logout" onclick="window.GEF.logout()">
+        <i data-lucide="log-out" style="width: 15px; height: 15px;"></i> Sair
+      </button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <!-- Menu Lateral Completo -->
+    <aside class="sidebar">
+      <button class="nav-item active" onclick="navigate('dashboard')">
+        <i data-lucide="layout-dashboard"></i> Dashboard
+      </button>
+      <button class="nav-item" onclick="navigate('produtos')">
+        <i data-lucide="box"></i> Produtos
+      </button>
+      <button class="nav-item" onclick="navigate('estoque')">
+        <i data-lucide="package-search"></i> Estoque
+      </button>
+      <button class="nav-item" onclick="navigate('vendas')">
+        <i data-lucide="shopping-cart"></i> Vendas
+      </button>
+      <button class="nav-item" onclick="navigate('clientes')">
+        <i data-lucide="users"></i> Clientes
+      </button>
+      <button class="nav-item" onclick="navigate('orcamentos')">
+        <i data-lucide="file-text"></i> Orçamentos
+      </button>
+      <button class="nav-item" onclick="navigate('relatorios')">
+        <i data-lucide="bar-chart-3"></i> Relatórios
+      </button>
+    </aside>
+
+    <!-- Conteúdo Dinâmico -->
+    <main class="main-content">
+
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="view-dashboard" class="view-section active">
+        <div class="metrics-grid">
+          <div class="metric-box">
+            <div class="metric-icon-wrap" style="background: rgba(37,99,235,0.15); color: #60a5fa;">
+              <i data-lucide="dollar-sign"></i>
+            </div>
+            <div>
+              <h4>Faturamento Total</h4>
+              <p id="dashTotalVendas">R$ 0,00</p>
+            </div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-icon-wrap" style="background: rgba(16,185,129,0.15); color: #34d399;">
+              <i data-lucide="check-circle"></i>
+            </div>
+            <div>
+              <h4>Vendas Realizadas</h4>
+              <p id="dashCountVendas">0</p>
+            </div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-icon-wrap" style="background: rgba(239,68,68,0.15); color: #f87171;">
+              <i data-lucide="alert-triangle"></i>
+            </div>
+            <div>
+              <h4>Estoque Crítico</h4>
+              <p id="dashEstoqueCritico">0</p>
+            </div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-icon-wrap" style="background: rgba(168,85,247,0.15); color: #c084fc;">
+              <i data-lucide="users"></i>
+            </div>
+            <div>
+              <h4>Clientes Ativos</h4>
+              <p id="dashCountClientes">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <div class="section-header">
+            <div class="section-title">
+              <i data-lucide="history" style="color: #60a5fa;"></i> Últimas Vendas no Caixa (PDV)
+            </div>
+            <a href="/caixa.html" class="btn-primary" style="text-decoration: none;">
+              <i data-lucide="monitor"></i> Ir para Frente de Caixa
+            </a>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Cliente</th>
+                  <th>Total</th>
+                  <th>Pagamento</th>
+                  <th>Operador</th>
+                </tr>
+              </thead>
+              <tbody id="dashTbodyVendas">
+                <tr><td colspan="5" style="text-align: center; padding: 20px;">Carregando dados do painel...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: PRODUTOS (CRUD COMPLETO) -->
+      <section id="view-produtos" class="view-section">
+        <div class="content-card">
+          <div class="section-header">
+            <div class="section-title">
+              <i data-lucide="box" style="color: #60a5fa;"></i> Cadastro de Produtos (Tabela produtos)
+            </div>
+            <button class="btn-primary" onclick="openModalProduto()">
+              <i data-lucide="plus"></i> Novo Produto
+            </button>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <input type="text" id="buscaProduto" class="form-control" placeholder="Buscar produto por nome ou código..." oninput="renderProdutos()">
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Nome do Produto</th>
+                  <th>Estoque Atual</th>
+                  <th>Mínimo</th>
+                  <th>Custo (R$)</th>
+                  <th>Venda (R$)</th>
+                  <th>Margem (%)</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyProdutos">
+                <tr><td colspan="8" style="text-align: center; padding: 20px;">Carregando produtos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: ESTOQUE (PRODUTOS + MOVIMENTAÇÕES) -->
+      <section id="view-estoque" class="view-section">
+        <div class="content-card">
+          <div class="section-header">
+            <div class="section-title">
+              <i data-lucide="package-search" style="color: #fbbf24;"></i> Saldo e Posição de Estoque
+            </div>
+            <a href="/estoquista.html" class="btn-primary" style="text-decoration: none;">
+              <i data-lucide="arrow-down-circle"></i> Nova Entrada de Estoque
+            </a>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Produto</th>
+                  <th>Estoque Atual</th>
+                  <th>Estoque Mínimo</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tbodySaldoEstoque"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <div class="section-title" style="margin-bottom: 16px;">
+            <i data-lucide="repeat" style="color: #38bdf8;"></i> Histórico de Movimentações (movimentacoes_estoque)
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Produto</th>
+                  <th>Tipo</th>
+                  <th>Quantidade</th>
+                  <th>Custo Unit.</th>
+                  <th>Preço Sugerido</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyMovimentacoes"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: VENDAS -->
+      <section id="view-vendas" class="view-section">
+        <div class="content-card">
+          <div class="section-header">
+            <div class="section-title">
+              <i data-lucide="shopping-bag" style="color: #34d399;"></i> Registro Geral de Vendas (vendas)
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Data/Hora</th>
+                  <th>Cliente</th>
+                  <th>Itens Vendidos</th>
+                  <th>Total da Venda</th>
+                  <th>Forma de Pagamento</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyTodasVendas"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: CLIENTES (CRUD COMPLETO) -->
+      <section id="view-clientes" class="view-section">
+        <div class="content-card">
+          <div class="section-header">
+            <div class="section-title">
+              <i data-lucide="users" style="color: #c084fc;"></i> Clientes Cadastrados (clientes)
+            </div>
+            <button class="btn-primary" onclick="openModalCliente()">
+              <i data-lucide="user-plus"></i> Novo Cliente
+            </button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome do Cliente</th>
+                  <th>Contato / Telefone</th>
+                  <th>Embaixador Vinculado</th>
+                  <th>Cadastrado Em</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyClientes"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 6: ORÇAMENTOS (CRUD COMPLETO) -->
+      <section id="view-orcamentos" class="view-section">
+        <div class="content-card">
+          <div class="section-header">
+            <div class="section-title">
+              <i data-lucide="file-text" style="color: #60a5fa;"></i> Orçamentos Comerciais (orcamentos)
+            </div>
+            <button class="btn-primary" onclick="openModalOrcamento()">
+              <i data-lucide="plus"></i> Novo Orçamento
+            </button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Valor Total</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyOrcamentos"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 7: RELATÓRIOS & AUDITORIA -->
+      <section id="view-relatorios" class="view-section">
+        <div class="content-card">
+          <div class="section-title" style="margin-bottom: 20px;">
+            <i data-lucide="pie-chart" style="color: #38bdf8;"></i> Resumo Financeiro & Desempenho
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <div>
+                <h4>Custo Total dos Produtos em Estoque</h4>
+                <p id="relCustoEstoque" style="color: #93c5fd;">R$ 0,00</p>
+              </div>
+            </div>
+            <div class="metric-box">
+              <div>
+                <h4>Valor Potencial de Venda (Estoque)</h4>
+                <p id="relVendaEstoque" style="color: #86efac;">R$ 0,00</p>
+              </div>
+            </div>
+            <div class="metric-box">
+              <div>
+                <h4>Lucro Bruto Estimado</h4>
+                <p id="relLucroEstimado" style="color: #fde047;">R$ 0,00</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <div class="section-title" style="margin-bottom: 16px;">
+            <i data-lucide="shield-alert" style="color: #f87171;"></i> Trilha de Auditoria (auditoria)
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Ação Executada</th>
+                  <th>Tabela Afetada</th>
+                  <th>Usuário</th>
+                  <th>Detalhes</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyAuditoria"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL PRODUTO (CRUD) -->
+  <div class="modal-overlay" id="modalProduto">
+    <div class="modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 id="modalProdutoTitle" style="font-size: 16px; font-weight: 700;">Cadastrar Novo Produto</h3>
+        <button onclick="closeModalProduto()" style="background:none; border:none; color: #94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+      </div>
+      <form id="formProduto">
+        <input type="hidden" id="prodId">
+        <div class="form-group">
+          <label>Código / SKU</label>
+          <input type="text" id="prodCodigo" class="form-control" placeholder="ex: PROD-100" required>
+        </div>
+        <div class="form-group">
+          <label>Nome do Produto</label>
+          <input type="text" id="prodNome" class="form-control" placeholder="ex: Café Gourmet 500g" required>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label>Estoque Inicial</label>
+            <input type="number" id="prodEstoque" class="form-control" value="10" required>
+          </div>
+          <div class="form-group">
+            <label>Estoque Mínimo (Alerta)</label>
+            <input type="number" id="prodEstoqueMin" class="form-control" value="5" required>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label>Custo Unitário (R$)</label>
+            <input type="number" step="0.01" id="prodCusto" class="form-control" value="10.00" oninput="calcMargem()" required>
+          </div>
+          <div class="form-group">
+            <label>Preço de Venda (R$)</label>
+            <input type="number" step="0.01" id="prodPreco" class="form-control" value="18.00" oninput="calcMargem()" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Margem Percentual Calculada (%)</label>
+          <input type="text" id="prodMargem" class="form-control" readonly style="background: #1e293b; color: #34d399; font-weight: 700;">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+          <button type="button" onclick="closeModalProduto()" class="form-control" style="width: auto; background: #334155; cursor:pointer;">Cancelar</button>
+          <button type="submit" class="btn-primary">Salvar Produto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CLIENTE (CRUD) -->
+  <div class="modal-overlay" id="modalCliente">
+    <div class="modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 id="modalClienteTitle" style="font-size: 16px; font-weight: 700;">Novo Cliente</h3>
+        <button onclick="closeModalCliente()" style="background:none; border:none; color: #94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+      </div>
+      <form id="formCliente">
+        <input type="hidden" id="cliId">
+        <div class="form-group">
+          <label>Nome Completo / Razão Social</label>
+          <input type="text" id="cliNome" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Contato / WhatsApp</label>
+          <input type="text" id="cliContato" class="form-control" placeholder="(11) 99999-9999" required>
+        </div>
+        <div class="form-group">
+          <label>Embaixador Vinculado (Opcional para comissão)</label>
+          <select id="cliEmbaixador" class="form-control">
+            <option value="">Nenhum embaixador</option>
+            <option value="u-embaixador-05">Fernanda Costa Rios (Embaixadora)</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+          <button type="button" onclick="closeModalCliente()" class="form-control" style="width: auto; background: #334155; cursor:pointer;">Cancelar</button>
+          <button type="submit" class="btn-primary">Salvar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL ORÇAMENTO (CRUD) -->
+  <div class="modal-overlay" id="modalOrcamento">
+    <div class="modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 700;">Novo Orçamento Comercial</h3>
+        <button onclick="closeModalOrcamento()" style="background:none; border:none; color: #94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+      </div>
+      <form id="formOrcamento">
+        <div class="form-group">
+          <label>Cliente</label>
+          <select id="orcCliente" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label>Valor Total (R$)</label>
+          <input type="number" step="0.01" id="orcTotal" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Status do Orçamento</label>
+          <select id="orcStatus" class="form-control">
+            <option value="aberto">Aberto</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="recusado">Recusado</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+          <button type="button" onclick="closeModalOrcamento()" class="form-control" style="width: auto; background: #334155; cursor:pointer;">Cancelar</button>
+          <button type="submit" class="btn-primary">Salvar Orçamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Validação de Perfil: Permite admin ou super_admin
+    const currentUser = window.GEF.requireAuth(['admin', 'super_admin']);
+    if (currentUser) {
+      document.getElementById('headerUser').textContent = currentUser.nome;
+    }
+
+    let produtos = [];
+    let vendas = [];
+    let clientes = [];
+    let orcamentos = [];
+    let movimentacoes = [];
+    let auditoria = [];
+
+    async function loadAllData() {
+      try {
+        const empId = currentUser.empresa_id;
+        [produtos, vendas, clientes, orcamentos, movimentacoes, auditoria] = await Promise.all([
+          window.GEF.db.getProdutos(empId),
+          window.GEF.db.getVendas(empId),
+          window.GEF.db.getClientes(empId),
+          window.GEF.db.getOrcamentos(empId),
+          window.GEF.db.getMovimentacoesEstoque(empId),
+          window.GEF.db.getAuditoria(empId)
+        ]);
+
+        renderDashboard();
+        renderProdutos();
+        renderEstoque();
+        renderVendas();
+        renderClientes();
+        renderOrcamentos();
+        renderRelatorios();
+      } catch (err) {
+        console.error('Erro ao carregar dados do admin:', err);
+      }
+    }
+
+    // Navegação entre abas laterais
+    function navigate(viewName) {
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+
+      event.currentTarget.classList.add('active');
+      const target = document.getElementById('view-' + viewName);
+      if (target) target.classList.add('active');
+      lucide.createIcons();
+    }
+
+    // 1. Render Dashboard
+    function renderDashboard() {
+      const totalFaturado = vendas.reduce((a, v) => a + Number(v.total || 0), 0);
+      document.getElementById('dashTotalVendas').textContent = window.GEF.formatCurrency(totalFaturado);
+      document.getElementById('dashCountVendas').textContent = vendas.length;
+      
+      const criticos = produtos.filter(p => Number(p.estoque_atual) <= Number(p.estoque_minimo)).length;
+      document.getElementById('dashEstoqueCritico').textContent = criticos;
+      document.getElementById('dashCountClientes').textContent = clientes.length;
+
+      const tbody = document.getElementById('dashTbodyVendas');
+      if (vendas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:16px;">Nenhuma venda recente.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = vendas.slice(0, 5).map(v => `
+        <tr>
+          <td>${window.GEF.formatDate(v.created_at)}</td>
+          <td><strong>${v.clientes?.nome || v.cliente_nome_avulso || 'Consumidor Avulso'}</strong></td>
+          <td style="color: #34d399; font-weight:700;">${window.GEF.formatCurrency(v.total)}</td>
+          <td><span class="badge badge-success">${(v.forma_pagamento || 'dinheiro').toUpperCase()}</span></td>
+          <td>${v.perfis?.nome || 'Caixa'}</td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // 2. Render Produtos
+    function renderProdutos() {
+      const termo = (document.getElementById('buscaProduto')?.value || '').toLowerCase();
+      const filtrados = produtos.filter(p => p.nome.toLowerCase().includes(termo) || (p.codigo && p.codigo.toLowerCase().includes(termo)));
+      const tbody = document.getElementById('tbodyProdutos');
+
+      if (filtrados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:16px;">Nenhum produto cadastrado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtrados.map(p => {
+        const isCritico = Number(p.estoque_atual) <= Number(p.estoque_minimo);
+        const badgeEstoque = isCritico 
+          ? `<span class="badge badge-danger">${p.estoque_atual} un</span>`
+          : `<span class="badge badge-success">${p.estoque_atual} un</span>`;
+
+        return `
+          <tr>
+            <td style="font-family: monospace;">${p.codigo || '-'}</td>
+            <td><strong>${p.nome}</strong></td>
+            <td>${badgeEstoque}</td>
+            <td>${p.estoque_minimo || 5}</td>
+            <td>${window.GEF.formatCurrency(p.custo)}</td>
+            <td style="color:#60a5fa; font-weight:700;">${window.GEF.formatCurrency(p.preco_venda)}</td>
+            <td><strong style="color: #34d399;">${p.margem_percentual || 0}%</strong></td>
+            <td>
+              <button class="btn-sm btn-edit" onclick="editarProduto('${p.id}')"><i data-lucide="edit-2" style="width:12px;height:12px;"></i></button>
+              <button class="btn-sm btn-delete" onclick="excluirProduto('${p.id}')"><i data-lucide="trash" style="width:12px;height:12px;"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function calcMargem() {
+      const custo = Number(document.getElementById('prodCusto').value) || 0;
+      const preco = Number(document.getElementById('prodPreco').value) || 0;
+      if (custo > 0) {
+        const margem = (((preco - custo) / custo) * 100).toFixed(1);
+        document.getElementById('prodMargem').value = margem + '%';
+      } else {
+        document.getElementById('prodMargem').value = '0%';
+      }
+    }
+
+    function openModalProduto() {
+      document.getElementById('formProduto').reset();
+      document.getElementById('prodId').value = '';
+      document.getElementById('modalProdutoTitle').textContent = 'Cadastrar Novo Produto';
+      calcMargem();
+      document.getElementById('modalProduto').style.display = 'flex';
+    }
+
+    function closeModalProduto() {
+      document.getElementById('modalProduto').style.display = 'none';
+    }
+
+    function editarProduto(id) {
+      const p = produtos.find(item => item.id === id);
+      if (!p) return;
+      document.getElementById('prodId').value = p.id;
+      document.getElementById('prodCodigo').value = p.codigo || '';
+      document.getElementById('prodNome').value = p.nome;
+      document.getElementById('prodEstoque').value = p.estoque_atual;
+      document.getElementById('prodEstoqueMin').value = p.estoque_minimo;
+      document.getElementById('prodCusto').value = p.custo;
+      document.getElementById('prodPreco').value = p.preco_venda;
+      document.getElementById('modalProdutoTitle').textContent = 'Editar Produto';
+      calcMargem();
+      document.getElementById('modalProduto').style.display = 'flex';
+    }
+
+    async function excluirProduto(id) {
+      if (!confirm('Deseja realmente remover este produto do catálogo?')) return;
+      try {
+        await window.GEF.db.deleteProduto(id);
+        await window.GEF.db.registrarAuditoria({
+          empresa_id: currentUser.empresa_id,
+          usuario_id: currentUser.id,
+          acao: 'EXCLUIR_PRODUTO',
+          tabela_afetada: 'produtos',
+          registro_id: id
+        });
+        window.GEF.showToast('Produto excluído com sucesso!', 'success');
+        await loadAllData();
+      } catch (e) {
+        window.GEF.showToast('Erro ao excluir produto: ' + e.message, 'error');
+      }
+    }
+
+    document.getElementById('formProduto').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('prodId').value;
+      const custo = Number(document.getElementById('prodCusto').value);
+      const preco_venda = Number(document.getElementById('prodPreco').value);
+      const margem_percentual = custo > 0 ? Number((((preco_venda - custo) / custo) * 100).toFixed(1)) : 0;
+
+      const payload = {
+        empresa_id: currentUser.empresa_id,
+        codigo: document.getElementById('prodCodigo').value,
+        nome: document.getElementById('prodNome').value,
+        estoque_atual: Number(document.getElementById('prodEstoque').value),
+        estoque_minimo: Number(document.getElementById('prodEstoqueMin').value),
+        custo,
+        preco_venda,
+        margem_percentual
+      };
+      if (id) payload.id = id;
+
+      try {
+        await window.GEF.db.saveProduto(payload);
+        await window.GEF.db.registrarAuditoria({
+          empresa_id: currentUser.empresa_id,
+          usuario_id: currentUser.id,
+          acao: id ? 'EDITAR_PRODUTO' : 'CRIAR_PRODUTO',
+          tabela_afetada: 'produtos',
+          registro_id: id,
+          detalhes: payload
+        });
+        window.GEF.showToast('Produto salvo com sucesso!', 'success');
+        closeModalProduto();
+        await loadAllData();
+      } catch (err) {
+        window.GEF.showToast('Erro ao salvar produto: ' + err.message, 'error');
+      }
+    });
+
+    // 3. Render Estoque
+    function renderEstoque() {
+      const tbodySaldo = document.getElementById('tbodySaldoEstoque');
+      tbodySaldo.innerHTML = produtos.map(p => {
+        const isCritico = Number(p.estoque_atual) <= Number(p.estoque_minimo);
+        return `
+          <tr>
+            <td style="font-family: monospace;">${p.codigo || '-'}</td>
+            <td><strong>${p.nome}</strong></td>
+            <td><strong>${p.estoque_atual} un</strong></td>
+            <td>${p.estoque_minimo} un</td>
+            <td>
+              ${isCritico ? '<span class="badge badge-danger">Repor Imediatamente</span>' : '<span class="badge badge-success">Estoque Adequado</span>'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      const tbodyMov = document.getElementById('tbodyMovimentacoes');
+      tbodyMov.innerHTML = movimentacoes.map(m => `
+        <tr>
+          <td>${window.GEF.formatDate(m.created_at)}</td>
+          <td><strong>${m.produtos?.nome || 'Produto ' + m.produto_id}</strong></td>
+          <td><span class="badge badge-success">${(m.tipo || 'entrada').toUpperCase()}</span></td>
+          <td><strong>${m.quantidade} un</strong></td>
+          <td>${window.GEF.formatCurrency(m.custo_unitario)}</td>
+          <td style="color:#34d399;">${window.GEF.formatCurrency(m.preco_sugerido)}</td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // 4. Render Vendas
+    function renderVendas() {
+      const tbody = document.getElementById('tbodyTodasVendas');
+      tbody.innerHTML = vendas.map(v => {
+        const itensText = (v.itens_venda || []).map(i => `${i.quantidade}x ${i.produtos?.nome || 'Item'}`).join(', ') || 'Produtos Diversos';
+        return `
+          <tr>
+            <td style="font-family: monospace; font-size:12px;">${v.id}</td>
+            <td>${window.GEF.formatDate(v.created_at)}</td>
+            <td><strong>${v.clientes?.nome || v.cliente_nome_avulso || 'Consumidor Avulso'}</strong></td>
+            <td style="font-size:12px; color: #94a3b8; max-width: 300px;">${itensText}</td>
+            <td style="color: #34d399; font-weight:700;">${window.GEF.formatCurrency(v.total)}</td>
+            <td><span class="badge badge-success">${(v.forma_pagamento || 'dinheiro').toUpperCase()}</span></td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // 5. Render Clientes
+    function renderClientes() {
+      const tbody = document.getElementById('tbodyClientes');
+      tbody.innerHTML = clientes.map(c => `
+        <tr>
+          <td><strong>${c.nome}</strong></td>
+          <td>${c.contato || '-'}</td>
+          <td><span class="badge badge-warning">${c.perfis?.nome || 'Venda Direta'}</span></td>
+          <td>${window.GEF.formatDate(c.created_at)}</td>
+          <td>
+            <button class="btn-sm btn-delete" onclick="excluirCliente('${c.id}')"><i data-lucide="trash" style="width:12px;height:12px;"></i></button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Popula select de orçamentos
+      const orcSelect = document.getElementById('orcCliente');
+      if (orcSelect) {
+        orcSelect.innerHTML = clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+      }
+      lucide.createIcons();
+    }
+
+    function openModalCliente() {
+      document.getElementById('formCliente').reset();
+      document.getElementById('cliId').value = '';
+      document.getElementById('modalCliente').style.display = 'flex';
+    }
+    function closeModalCliente() { document.getElementById('modalCliente').style.display = 'none'; }
+
+    document.getElementById('formCliente').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        empresa_id: currentUser.empresa_id,
+        nome: document.getElementById('cliNome').value,
+        contato: document.getElementById('cliContato').value,
+        embaixador_id: document.getElementById('cliEmbaixador').value || null
+      };
+      try {
+        await window.GEF.db.saveCliente(payload);
+        window.GEF.showToast('Cliente cadastrado com sucesso!', 'success');
+        closeModalCliente();
+        await loadAllData();
+      } catch (err) {
+        window.GEF.showToast('Erro ao cadastrar cliente: ' + err.message, 'error');
+      }
+    });
+
+    // 6. Render Orçamentos
+    function renderOrcamentos() {
+      const tbody = document.getElementById('tbodyOrcamentos');
+      tbody.innerHTML = orcamentos.map(o => {
+        const badgeClass = o.status === 'aprovado' ? 'badge-success' : o.status === 'recusado' ? 'badge-danger' : 'badge-warning';
+        return `
+          <tr>
+            <td style="font-family: monospace;">${o.id}</td>
+            <td><strong>${o.clientes?.nome || 'Cliente ' + o.cliente_id}</strong></td>
+            <td style="color:#60a5fa; font-weight:700;">${window.GEF.formatCurrency(o.total)}</td>
+            <td><span class="badge ${badgeClass}">${(o.status || 'aberto').toUpperCase()}</span></td>
+            <td>
+              <select class="form-control" style="width: auto; padding: 4px 8px; font-size:12px;" onchange="alterarStatusOrcamento('${o.id}', this.value)">
+                <option value="aberto" ${o.status === 'aberto' ? 'selected' : ''}>Aberto</option>
+                <option value="aprovado" ${o.status === 'aprovado' ? 'selected' : ''}>Aprovado</option>
+                <option value="recusado" ${o.status === 'recusado' ? 'selected' : ''}>Recusado</option>
+              </select>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function openModalOrcamento() { document.getElementById('modalOrcamento').style.display = 'flex'; }
+    function closeModalOrcamento() { document.getElementById('modalOrcamento').style.display = 'none'; }
+
+    document.getElementById('formOrcamento').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        empresa_id: currentUser.empresa_id,
+        cliente_id: document.getElementById('orcCliente').value,
+        total: Number(document.getElementById('orcTotal').value),
+        status: document.getElementById('orcStatus').value
+      };
+      try {
+        await window.GEF.db.saveOrcamento(payload);
+        window.GEF.showToast('Orçamento salvo com sucesso!', 'success');
+        closeModalOrcamento();
+        await loadAllData();
+      } catch (err) {
+        window.GEF.showToast('Erro ao salvar orçamento: ' + err.message, 'error');
+      }
+    });
+
+    async function alterarStatusOrcamento(id, status) {
+      try {
+        await window.GEF.db.saveOrcamento({ id, status });
+        window.GEF.showToast('Status do orçamento atualizado!', 'success');
+        await loadAllData();
+      } catch (e) {
+        window.GEF.showToast('Erro: ' + e.message, 'error');
+      }
+    }
+
+    // 7. Render Relatórios & Auditoria
+    function renderRelatorios() {
+      const custoTotal = produtos.reduce((acc, p) => acc + (Number(p.custo || 0) * Number(p.estoque_atual || 0)), 0);
+      const vendaTotal = produtos.reduce((acc, p) => acc + (Number(p.preco_venda || 0) * Number(p.estoque_atual || 0)), 0);
+      const lucroTotal = vendaTotal - custoTotal;
+
+      document.getElementById('relCustoEstoque').textContent = window.GEF.formatCurrency(custoTotal);
+      document.getElementById('relVendaEstoque').textContent = window.GEF.formatCurrency(vendaTotal);
+      document.getElementById('relLucroEstimado').textContent = window.GEF.formatCurrency(lucroTotal);
+
+      const tbody = document.getElementById('tbodyAuditoria');
+      tbody.innerHTML = auditoria.map(a => `
+        <tr>
+          <td>${window.GEF.formatDate(a.created_at)}</td>
+          <td><strong style="color:#60a5fa;">${a.acao}</strong></td>
+          <td><span class="badge badge-warning">${a.tabela_afetada || 'Geral'}</span></td>
+          <td>${a.perfis?.nome || currentUser.nome}</td>
+          <td style="font-family: monospace; font-size:11px; color:#94a3b8;">${JSON.stringify(a.detalhes || {})}</td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // Inicia dados
+    loadAllData();
+    lucide.createIcons();
+  </script>
+</body>
+</html>

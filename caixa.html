@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEF SaaS - Frente de Caixa (PDV)</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/js/comum.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #0b1120;
+      --panel: #1e293b;
+      --panel-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Header */
+    header {
+      background: #0f172a;
+      border-bottom: 1px solid var(--panel-border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .brand-title { font-size: 18px; font-weight: 800; }
+    .brand-title span {
+      color: #34d399;
+      font-size: 12px;
+      background: rgba(16,185,129,0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
+    .header-info { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+    .status-badge {
+      background: rgba(16,185,129,0.15);
+      color: #34d399;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+    .btn-logout {
+      background: rgba(239,68,68,0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.3);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* PDV Layout Split */
+    .pdv-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 56px);
+      overflow: hidden;
+    }
+
+    /* Painel Esquerdo: Catálogo de Produtos */
+    .catalog-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      border-right: 1px solid var(--panel-border);
+      overflow: hidden;
+    }
+    .search-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .search-input {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .search-input:focus { border-color: var(--primary); }
+
+    /* 12 Produtos Preview Grid */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      overflow-y: auto;
+      padding-right: 6px;
+      flex: 1;
+    }
+    .product-card {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .product-card:hover {
+      border-color: #3b82f6;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    .product-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(37,99,235,0.15);
+      color: #60a5fa;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .product-sku { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+    .product-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+      margin: 4px 0 8px;
+      min-height: 34px;
+    }
+    .product-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .product-price { font-size: 15px; font-weight: 800; color: #34d399; }
+    .stock-tag {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #334155;
+      color: #94a3b8;
+    }
+    .stock-tag.low { background: rgba(239,68,68,0.2); color: #f87171; }
+
+    /* Painel Direito: Carrinho de Compras */
+    .cart-panel {
+      width: 440px;
+      background: #0f172a;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .cart-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cart-header h3 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .btn-clear { background: none; border: none; color: #94a3b8; font-size: 12px; cursor: pointer; }
+    .btn-clear:hover { color: #ef4444; }
+
+    .cart-items-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .cart-item {
+      background: #1e293b;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .cart-item-info { flex: 1; }
+    .cart-item-name { font-size: 13px; font-weight: 600; color: #fff; }
+    .cart-item-price { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+    /* Controles de Quantidade: Botão - , Input Direto, Botão + */
+    .qty-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #0f172a;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 2px;
+    }
+    .qty-btn {
+      width: 26px;
+      height: 26px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    .qty-btn:hover { background: #334155; }
+    .qty-input {
+      width: 38px;
+      height: 26px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      outline: none;
+    }
+    .cart-item-subtotal {
+      font-size: 14px;
+      font-weight: 700;
+      color: #34d399;
+      min-width: 65px;
+      text-align: right;
+    }
+    .btn-remove-item {
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .btn-remove-item:hover { color: #ef4444; }
+
+    /* Rodapé do Carrinho e Finalização */
+    .cart-checkout-box {
+      border-top: 1px solid var(--panel-border);
+      padding: 14px 18px;
+      background: #182234;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .customer-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .customer-input-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+    .customer-input {
+      background: #0f172a;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: #fff;
+      outline: none;
+    }
+    .payment-select {
+      background: #0f172a;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: #fff;
+      outline: none;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 4px 0;
+    }
+    .total-label { font-size: 15px; font-weight: 600; color: #cbd5e1; }
+    .total-val { font-size: 26px; font-weight: 800; color: #34d399; }
+
+    .btn-finalize {
+      background: #10b981;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn-finalize:hover { background: #059669; }
+    .btn-finalize:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Modal Comprovante */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .receipt-card {
+      background: #ffffff;
+      color: #0f172a;
+      width: 100%;
+      max-width: 360px;
+      border-radius: 12px;
+      padding: 24px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header PDV -->
+  <header>
+    <a href="/caixa.html" class="brand">
+      <div class="brand-icon"><i data-lucide="shopping-cart"></i></div>
+      <div class="brand-title">GEF <span>PDV</span></div>
+    </a>
+    <div class="header-info">
+      <div class="status-badge">
+        <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i>
+        Caixa Aberto: <strong id="operatorName">Operador</strong>
+      </div>
+      <a href="/admin.html" style="color: #94a3b8; font-size: 12px; text-decoration: none;">Painel Admin</a>
+      <button class="btn-logout" onclick="window.GEF.logout()">
+        <i data-lucide="log-out" style="width: 14px; height: 14px;"></i> Sair
+      </button>
+    </div>
+  </header>
+
+  <div class="pdv-container">
+    <!-- Painel Esquerdo: Produtos Preview & Busca -->
+    <section class="catalog-panel">
+      <div class="search-bar-wrap">
+        <div style="position: relative; flex: 1; display: flex; align-items: center;">
+          <i data-lucide="search" style="position: absolute; left: 12px; width: 16px; height: 16px; color: #64748b;"></i>
+          <input type="text" id="searchInput" class="search-input" style="padding-left: 38px;" placeholder="Buscar por código ou nome do produto... [F2]">
+        </div>
+        <button class="search-input" style="width: auto; cursor: pointer; background: #334155; border: none;" onclick="clearSearch()">
+          Limpar
+        </button>
+      </div>
+
+      <!-- Grid com 12 produtos preview -->
+      <div class="products-grid" id="productsGrid">
+        <!-- Renderizado dinamicamente com 12 itens -->
+      </div>
+    </section>
+
+    <!-- Painel Direito: Carrinho de Compras Interativo -->
+    <section class="cart-panel">
+      <div class="cart-header">
+        <h3><i data-lucide="shopping-bag" style="width: 18px; height: 18px; color: #34d399;"></i> Carrinho de Compras</h3>
+        <button class="btn-clear" onclick="clearCart()">Esvaziar</button>
+      </div>
+
+      <!-- Lista de Itens do Carrinho -->
+      <div class="cart-items-list" id="cartItemsList">
+        <div style="text-align: center; color: #64748b; margin-top: 60px;">
+          <i data-lucide="shopping-cart" style="width: 48px; height: 48px; margin-bottom: 12px; stroke-width: 1.5;"></i>
+          <p>Carrinho vazio</p>
+          <span style="font-size: 12px;">Selecione os produtos ao lado</span>
+        </div>
+      </div>
+
+      <!-- Painel de Checkout & Finalização -->
+      <div class="cart-checkout-box">
+        <!-- Campo cliente_nome_avulso opcional -->
+        <div class="customer-input-group">
+          <label>Cliente (Opcional - Avulso ou Cadastrado)</label>
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="clienteNomeAvulso" class="customer-input" placeholder="Nome do cliente avulso..." style="flex: 2;">
+            <input type="text" id="clienteContatoAvulso" class="customer-input" placeholder="Contato..." style="flex: 1;">
+          </div>
+        </div>
+
+        <div class="customer-input-group">
+          <label>Forma de Pagamento</label>
+          <select id="formaPagamento" class="payment-select">
+            <option value="dinheiro">Dinheiro</option>
+            <option value="pix">PIX (Instantâneo)</option>
+            <option value="cartao_debito">Cartão de Débito</option>
+            <option value="cartao_credito">Cartão de Crédito</option>
+            <option value="a_prazo">A Prazo (Crediário)</option>
+          </select>
+        </div>
+
+        <div class="total-row">
+          <span class="total-label">Total a Pagar:</span>
+          <span class="total-val" id="cartTotalDisplay">R$ 0,00</span>
+        </div>
+
+        <button type="button" id="btnFinalizar" class="btn-finalize" onclick="finalizarVenda()" disabled>
+          <i data-lucide="check" style="width: 20px; height: 20px;"></i>
+          Finalizar Venda (PDV)
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal Recibo de Venda -->
+  <div class="modal-overlay" id="receiptModal">
+    <div class="receipt-card">
+      <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
+        <h2 style="font-size: 16px; font-weight: 800;">GEF SaaS - PDV</h2>
+        <p style="font-size: 11px;">Comprovante Não Fiscal</p>
+        <p id="rcptData" style="font-size: 11px;"></p>
+      </div>
+      <div id="rcptCorpo" style="margin-bottom: 10px;"></div>
+      <div style="border-top: 1px dashed #000; padding-top: 10px;">
+        <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 14px;">
+          <span>TOTAL:</span>
+          <span id="rcptTotal"></span>
+        </div>
+        <p id="rcptPagamento" style="margin-top: 4px; font-size: 11px;"></p>
+        <p id="rcptCliente" style="margin-top: 2px; font-size: 11px;"></p>
+      </div>
+      <div style="margin-top: 16px; display: flex; gap: 8px;">
+        <button onclick="window.print()" style="flex: 1; padding: 8px; background: #0f172a; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Imprimir</button>
+        <button onclick="closeReceipt()" style="flex: 1; padding: 8px; background: #e2e8f0; color: #000; border: none; border-radius: 6px; cursor: pointer;">Nova Venda</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Validação de acesso: caixa, admin, super_admin
+    const currentUser = window.GEF.requireAuth(['caixa', 'admin', 'super_admin']);
+    if (currentUser) {
+      document.getElementById('operatorName').textContent = currentUser.nome;
+    }
+
+    let produtos = [];
+    let cart = []; // { produto_id, nome, codigo, preco_unitario, quantidade, estoque_max }
+
+    async function initPDV() {
+      try {
+        produtos = await window.GEF.db.getProdutos(currentUser.empresa_id);
+        renderProductCatalog();
+      } catch (e) {
+        console.error('Erro ao carregar catálogo do PDV:', e);
+      }
+    }
+
+    // Renderiza 12 produtos preview com busca interativa
+    function renderProductCatalog() {
+      const termo = document.getElementById('searchInput').value.toLowerCase().trim();
+      const filtrados = produtos.filter(p => p.nome.toLowerCase().includes(termo) || (p.codigo && p.codigo.toLowerCase().includes(termo)));
+
+      // Garante até 12 produtos para preview conforme solicitado
+      const preview12 = filtrados.slice(0, 12);
+      const grid = document.getElementById('productsGrid');
+
+      if (preview12.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #64748b; padding: 30px;">Nenhum produto encontrado.</div>';
+        return;
+      }
+
+      grid.innerHTML = preview12.map(p => {
+        const isLow = Number(p.estoque_atual) <= Number(p.estoque_minimo);
+        return `
+          <div class="product-card" onclick="addToCart('${p.id}')">
+            <div>
+              <div class="product-icon"><i data-lucide="package"></i></div>
+              <div class="product-sku">${p.codigo || 'SKU'}</div>
+              <div class="product-title">${p.nome}</div>
+            </div>
+            <div class="product-footer">
+              <span class="product-price">${window.GEF.formatCurrency(p.preco_venda)}</span>
+              <span class="stock-tag ${isLow ? 'low' : ''}">${p.estoque_atual} un</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderProductCatalog);
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      renderProductCatalog();
+    }
+
+    // Gerenciamento do Carrinho
+    function addToCart(produtoId) {
+      const prod = produtos.find(p => p.id === produtoId);
+      if (!prod) return;
+
+      if (prod.estoque_atual <= 0) {
+        window.GEF.showToast(`Produto "${prod.nome}" está sem estoque!`, 'warning');
+        return;
+      }
+
+      const existingIndex = cart.findIndex(item => item.produto_id === produtoId);
+      if (existingIndex > -1) {
+        if (cart[existingIndex].quantidade + 1 > prod.estoque_atual) {
+          window.GEF.showToast(`Estoque máximo atingido (${prod.estoque_atual} un)`, 'warning');
+          return;
+        }
+        cart[existingIndex].quantidade += 1;
+      } else {
+        cart.push({
+          produto_id: prod.id,
+          nome: prod.nome,
+          codigo: prod.codigo,
+          preco_unitario: Number(prod.preco_venda),
+          quantidade: 1,
+          estoque_max: Number(prod.estoque_atual)
+        });
+      }
+
+      renderCart();
+    }
+
+    function updateItemQty(produtoId, delta) {
+      const item = cart.find(i => i.produto_id === produtoId);
+      if (!item) return;
+
+      const novaQtd = item.quantidade + delta;
+      if (novaQtd <= 0) {
+        removeItem(produtoId);
+        return;
+      }
+      if (novaQtd > item.estoque_max) {
+        window.GEF.showToast(`Limite em estoque atingido (${item.estoque_max} un)`, 'warning');
+        return;
+      }
+      item.quantidade = novaQtd;
+      renderCart();
+    }
+
+    // Entrada direta de quantidade no input
+    function setItemQtyDirect(produtoId, value) {
+      const item = cart.find(i => i.produto_id === produtoId);
+      if (!item) return;
+
+      let parsed = parseInt(value, 10);
+      if (isNaN(parsed) || parsed <= 0) {
+        parsed = 1;
+      }
+      if (parsed > item.estoque_max) {
+        window.GEF.showToast(`Limite em estoque atingido (${item.estoque_max} un)`, 'warning');
+        parsed = item.estoque_max;
+      }
+      item.quantidade = parsed;
+      renderCart();
+    }
+
+    function removeItem(produtoId) {
+      cart = cart.filter(i => i.produto_id !== produtoId);
+      renderCart();
+    }
+
+    function clearCart() {
+      cart = [];
+      renderCart();
+    }
+
+    function renderCart() {
+      const list = document.getElementById('cartItemsList');
+      const totalDisplay = document.getElementById('cartTotalDisplay');
+      const btnFinalizar = document.getElementById('btnFinalizar');
+
+      if (cart.length === 0) {
+        list.innerHTML = `
+          <div style="text-align: center; color: #64748b; margin-top: 60px;">
+            <i data-lucide="shopping-cart" style="width: 48px; height: 48px; margin-bottom: 12px; stroke-width: 1.5;"></i>
+            <p>Carrinho vazio</p>
+            <span style="font-size: 12px;">Selecione os produtos ao lado</span>
+          </div>
+        `;
+        totalDisplay.textContent = 'R$ 0,00';
+        btnFinalizar.disabled = true;
+        lucide.createIcons();
+        return;
+      }
+
+      let total = 0;
+      list.innerHTML = cart.map(item => {
+        const subtotal = item.quantidade * item.preco_unitario;
+        total += subtotal;
+        return `
+          <div class="cart-item">
+            <div class="cart-item-info">
+              <div class="cart-item-name">${item.nome}</div>
+              <div class="cart-item-price">${window.GEF.formatCurrency(item.preco_unitario)} un</div>
+            </div>
+            <div class="qty-controls">
+              <button class="qty-btn" onclick="updateItemQty('${item.produto_id}', -1)">-</button>
+              <input type="number" class="qty-input" value="${item.quantidade}" min="1" max="${item.estoque_max}" onchange="setItemQtyDirect('${item.produto_id}', this.value)">
+              <button class="qty-btn" onclick="updateItemQty('${item.produto_id}', 1)">+</button>
+            </div>
+            <div class="cart-item-subtotal">${window.GEF.formatCurrency(subtotal)}</div>
+            <button class="btn-remove-item" onclick="removeItem('${item.produto_id}')">
+              <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      totalDisplay.textContent = window.GEF.formatCurrency(total);
+      btnFinalizar.disabled = false;
+      lucide.createIcons();
+    }
+
+    // Finalizar Venda: Salva em vendas, itens_venda, auditoria
+    async function finalizarVenda() {
+      if (cart.length === 0) return;
+
+      const btn = document.getElementById('btnFinalizar');
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin"></i> Processando venda...';
+
+      const totalVenda = cart.reduce((sum, item) => sum + (item.quantidade * item.preco_unitario), 0);
+      const clienteNomeAvulso = document.getElementById('clienteNomeAvulso').value.trim() || null;
+      const clienteContatoAvulso = document.getElementById('clienteContatoAvulso').value.trim() || null;
+      const formaPagamento = document.getElementById('formaPagamento').value;
+
+      try {
+        const payloadVenda = {
+          empresa_id: currentUser.empresa_id,
+          cliente_id: null,
+          cliente_nome_avulso: clienteNomeAvulso,
+          cliente_contato_avulso: clienteContatoAvulso,
+          usuario_id: currentUser.id,
+          total: totalVenda,
+          forma_pagamento: formaPagamento,
+          itens: cart
+        };
+
+        const vendaCriada = await window.GEF.db.registrarVenda(payloadVenda);
+
+        window.GEF.showToast('Venda realizada com sucesso!', 'success');
+
+        // Exibe Comprovante / Recibo
+        showReceipt(vendaCriada, cart, totalVenda, formaPagamento, clienteNomeAvulso);
+
+        // Limpa campos e recarrega catálogo
+        cart = [];
+        document.getElementById('clienteNomeAvulso').value = '';
+        document.getElementById('clienteContatoAvulso').value = '';
+        renderCart();
+        await initPDV();
+
+      } catch (err) {
+        console.error('Erro ao finalizar venda:', err);
+        window.GEF.showToast('Falha ao finalizar venda: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="check" style="width: 20px; height: 20px;"></i> Finalizar Venda (PDV)';
+        lucide.createIcons();
+      }
+    }
+
+    function showReceipt(venda, itens, total, forma, cliente) {
+      document.getElementById('rcptData').textContent = new Date().toLocaleString('pt-BR');
+      document.getElementById('rcptTotal').textContent = window.GEF.formatCurrency(total);
+      document.getElementById('rcptPagamento').textContent = 'PAGAMENTO: ' + forma.toUpperCase();
+      document.getElementById('rcptCliente').textContent = 'CLIENTE: ' + (cliente || 'Consumidor Não Identificado');
+
+      const corpo = itens.map(i => `
+        <div style="display:flex; justify-content:space-between; margin-bottom: 2px;">
+          <span>${i.quantidade}x ${i.nome.substring(0, 20)}</span>
+          <span>${window.GEF.formatCurrency(i.quantidade * i.preco_unitario)}</span>
+        </div>
+      `).join('');
+      document.getElementById('rcptCorpo').innerHTML = corpo;
+      document.getElementById('receiptModal').style.display = 'flex';
+    }
+
+    function closeReceipt() {
+      document.getElementById('receiptModal').style.display = 'none';
+    }
+
+    // Inicialização
+    initPDV();
+    lucide.createIcons();
+  </script>
+</body>
+</html>

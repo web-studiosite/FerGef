@@ -1,0 +1,6 @@
+{
+  "name": "GEF SaaS",
+  "description": "Sistema de Gestão Empresarial e PDV multi-perfil (Super Admin, Admin, Caixa, Estoquista, Embaixador) integrado com Supabase e PWA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

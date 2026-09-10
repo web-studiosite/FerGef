@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEF SaaS - Painel Super Admin</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/js/comum.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Header */
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .brand-title span {
+      color: #60a5fa;
+      font-size: 13px;
+      background: rgba(37,99,235,0.25);
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-left: 4px;
+      border: 1px solid rgba(96,165,250,0.3);
+    }
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.05);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .role-tag {
+      background: #f59e0b;
+      color: #000;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .btn-logout {
+      background: rgba(239,68,68,0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239,68,68,0.3);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover { background: #ef4444; color: #fff; }
+
+    /* Navigation Menu */
+    .nav-container {
+      background: #182234;
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      display: flex;
+      gap: 8px;
+    }
+    .nav-tab {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 14px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .nav-tab:hover { color: #fff; }
+    .nav-tab.active {
+      color: #60a5fa;
+      border-bottom-color: #2563eb;
+      background: rgba(37,99,235,0.06);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 28px;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Metric Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .metric-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .metric-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .metric-info h4 { font-size: 12px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+    .metric-info p { font-size: 22px; font-weight: 700; margin-top: 4px; color: #fff; }
+
+    /* Content Box */
+    .content-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .box-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .box-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .btn-action {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-action:hover { background: var(--primary-hover); }
+
+    /* Tables */
+    .table-responsive { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      text-align: left;
+    }
+    th {
+      background: rgba(15,23,42,0.6);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(51,65,85,0.4);
+      color: #cbd5e1;
+    }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-success { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+    .badge-warning { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+    .btn-pay {
+      background: #10b981;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.2s;
+    }
+    .btn-pay:hover { background: #059669; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .modal-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 460px;
+      padding: 24px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+    .form-control {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-control:focus { border-color: var(--primary); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <a href="/super.html" class="brand">
+      <div class="brand-icon"><i data-lucide="crown"></i></div>
+      <div class="brand-title">GEF <span>SaaS</span></div>
+    </a>
+    <div class="header-user">
+      <div class="user-badge">
+        <span class="role-tag">SUPER ADMIN</span>
+        <span id="userName">Carregando...</span>
+      </div>
+      <button class="btn-logout" onclick="window.GEF.logout()">
+        <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <!-- Menu de Abas Superior -->
+  <nav class="nav-container">
+    <button class="nav-tab active" id="tabBtnPagamentos" onclick="switchTab('pagamentos')">
+      <i data-lucide="building-2" style="width: 18px; height: 18px;"></i>
+      Pagamentos Empresa
+    </button>
+    <button class="nav-tab" id="tabBtnComissoes" onclick="switchTab('comissoes')">
+      <i data-lucide="wallet" style="width: 18px; height: 18px;"></i>
+      Pagar Comissão
+    </button>
+  </nav>
+
+  <!-- Conteúdo Principal -->
+  <main>
+    <!-- Grid de Métricas Globais -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon" style="background: rgba(37,99,235,0.15); color: #60a5fa;">
+          <i data-lucide="building"></i>
+        </div>
+        <div class="metric-info">
+          <h4>Empresas Ativas</h4>
+          <p id="metricTotalEmpresas">0</p>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon" style="background: rgba(16,185,129,0.15); color: #34d399;">
+          <i data-lucide="dollar-sign"></i>
+        </div>
+        <div class="metric-info">
+          <h4>Planos Recebidos</h4>
+          <p id="metricTotalPlanos">R$ 0,00</p>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon" style="background: rgba(245,158,11,0.15); color: #fbbf24;">
+          <i data-lucide="clock"></i>
+        </div>
+        <div class="metric-info">
+          <h4>Comissões Pendentes</h4>
+          <p id="metricComissoesPendentes">R$ 0,00</p>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon" style="background: rgba(168,85,247,0.15); color: #c084fc;">
+          <i data-lucide="check-circle-2"></i>
+        </div>
+        <div class="metric-info">
+          <h4>Comissões Pagas</h4>
+          <p id="metricComissoesPagas">R$ 0,00</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção 1: Pagamentos Empresa (Tabela pagamentos_empresa) -->
+    <div class="content-box" id="sectionPagamentos">
+      <div class="box-header">
+        <div class="box-title">
+          <i data-lucide="receipt" style="color: #60a5fa;"></i>
+          Histórico de Pagamentos de Assinatura (Empresas)
+        </div>
+        <button class="btn-action" onclick="openModalNovoPagamento()">
+          <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+          Registrar Pagamento
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Empresa</th>
+              <th>Valor Pago</th>
+              <th>Data do Pagamento</th>
+              <th>Status do Plano</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyPagamentos">
+            <tr><td colspan="5" style="text-align: center; padding: 24px;">Carregando registros de pagamentos_empresa...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Seção 2: Pagar Comissão (Tabela comissoes) -->
+    <div class="content-box" id="sectionComissoes" style="display: none;">
+      <div class="box-header">
+        <div class="box-title">
+          <i data-lucide="badge-percent" style="color: #fbbf24;"></i>
+          Gerenciamento e Liquidação de Comissões
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <select id="filtroStatusComissao" class="form-control" style="width: auto; padding: 6px 12px;" onchange="renderComissoes()">
+            <option value="todos">Todos os Status</option>
+            <option value="pendente">Apenas Pendentes</option>
+            <option value="pago">Apenas Pagos</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Código / Ciclo</th>
+              <th>Embaixador</th>
+              <th>Venda Associada</th>
+              <th>Valor da Comissão</th>
+              <th>Status</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyComissoes">
+            <tr><td colspan="6" style="text-align: center; padding: 24px;">Carregando tabela comissoes...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Registrar Pagamento de Empresa -->
+  <div class="modal-overlay" id="modalPagamento">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px; font-weight: 700;">Registrar Pagamento de Empresa</h3>
+        <button onclick="closeModalNovoPagamento()" style="background:none; border:none; color: #94a3b8; cursor: pointer;">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="formNovoPagamento">
+        <div class="form-group">
+          <label>Empresa Assinante</label>
+          <select id="selEmpresa" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label>Valor Pago (R$)</label>
+          <input type="number" step="0.01" id="inpValorPago" class="form-control" placeholder="1500.00" required>
+        </div>
+        <div class="form-group">
+          <label>Data do Pagamento</label>
+          <input type="date" id="inpDataPagamento" class="form-control" required>
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px;">
+          <button type="button" onclick="closeModalNovoPagamento()" class="form-control" style="width: auto; background: #334155; cursor: pointer;">Cancelar</button>
+          <button type="submit" class="btn-action">Salvar Pagamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Validação de Perfil: Permite super_admin (ou admin para flexibilidade)
+    const currentUser = window.GEF.requireAuth(['super_admin']);
+    if (currentUser) {
+      document.getElementById('userName').textContent = currentUser.nome;
+    }
+
+    let todasEmpresas = [];
+    let todosPagamentos = [];
+    let todasComissoes = [];
+
+    async function loadData() {
+      try {
+        todasEmpresas = await window.GEF.db.getEmpresas();
+        todosPagamentos = await window.GEF.db.getPagamentosEmpresa();
+        todasComissoes = await window.GEF.db.getComissoes();
+
+        renderMetrics();
+        renderPagamentos();
+        renderComissoes();
+        populateEmpresasSelect();
+      } catch (e) {
+        console.error('Erro ao carregar dados do Super Admin:', e);
+        window.GEF.showToast('Erro ao carregar dados do servidor', 'error');
+      }
+    }
+
+    function renderMetrics() {
+      document.getElementById('metricTotalEmpresas').textContent = todasEmpresas.length;
+
+      const totalPlanos = todosPagamentos.reduce((acc, p) => acc + Number(p.valor_pago || 0), 0);
+      document.getElementById('metricTotalPlanos').textContent = window.GEF.formatCurrency(totalPlanos);
+
+      const pendentes = todasComissoes.filter(c => c.status === 'pendente').reduce((acc, c) => acc + Number(c.valor || 0), 0);
+      document.getElementById('metricComissoesPendentes').textContent = window.GEF.formatCurrency(pendentes);
+
+      const pagas = todasComissoes.filter(c => c.status === 'pago').reduce((acc, c) => acc + Number(c.valor || 0), 0);
+      document.getElementById('metricComissoesPagas').textContent = window.GEF.formatCurrency(pagas);
+    }
+
+    function renderPagamentos() {
+      const tbody = document.getElementById('tbodyPagamentos');
+      if (todosPagamentos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 24px;">Nenhum pagamento de empresa registrado até o momento.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = todosPagamentos.map(p => {
+        const empresaNome = p.empresas?.nome || 'Empresa ID: ' + p.empresa_id;
+        const dataFormatada = p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString('pt-BR') : '-';
+        return `
+          <tr>
+            <td style="font-family: monospace; font-size: 12px;">${p.id}</td>
+            <td><strong>${empresaNome}</strong></td>
+            <td style="color: #34d399; font-weight: 700;">${window.GEF.formatCurrency(p.valor_pago)}</td>
+            <td>${dataFormatada}</td>
+            <td><span class="badge badge-success"><i data-lucide="check" style="width: 12px; height: 12px;"></i> Confirmado</span></td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function renderComissoes() {
+      const tbody = document.getElementById('tbodyComissoes');
+      const filtro = document.getElementById('filtroStatusComissao').value;
+      const filtradas = todasComissoes.filter(c => filtro === 'todos' || c.status === filtro);
+
+      if (filtradas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 24px;">Nenhuma comissão encontrada para este filtro.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtradas.map(c => {
+        const embNome = c.perfis?.nome || 'Embaixador ID: ' + c.embaixador_id;
+        const isPendente = c.status === 'pendente';
+        const badge = isPendente 
+          ? `<span class="badge badge-warning"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> Pendente</span>`
+          : `<span class="badge badge-success"><i data-lucide="check-check" style="width: 12px; height: 12px;"></i> Pago</span>`;
+
+        const btnAcao = isPendente
+          ? `<button class="btn-pay" onclick="liquidarComissao('${c.id}')"><i data-lucide="check" style="width: 14px; height: 14px;"></i> Pagar Agora</button>`
+          : `<span style="color: #94a3b8; font-size: 12px;">Liquidada</span>`;
+
+        return `
+          <tr>
+            <td><strong>${c.ciclo || 'Ciclo Geral'}</strong><div style="font-size: 11px; color: #64748b;">${c.id}</div></td>
+            <td>${embNome}</td>
+            <td><span style="font-family: monospace; font-size: 12px;">${c.venda_id || 'Avulsa'}</span></td>
+            <td style="color: #60a5fa; font-weight: 700;">${window.GEF.formatCurrency(c.valor)}</td>
+            <td>${badge}</td>
+            <td>${btnAcao}</td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    async function liquidarComissao(comissaoId) {
+      if (!confirm('Deseja confirmar a liquidação e pagamento desta comissão?')) return;
+      try {
+        await window.GEF.db.pagarComissao(comissaoId);
+        await window.GEF.db.registrarAuditoria({
+          empresa_id: currentUser.empresa_id,
+          usuario_id: currentUser.id,
+          acao: 'PAGAR_COMISSAO',
+          tabela_afetada: 'comissoes',
+          registro_id: comissaoId,
+          detalhes: { realizado_por: currentUser.nome }
+        });
+        window.GEF.showToast('Comissão paga com sucesso!', 'success');
+        await loadData();
+      } catch (err) {
+        window.GEF.showToast('Erro ao pagar comissão: ' + err.message, 'error');
+      }
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tabBtnPagamentos').classList.toggle('active', tab === 'pagamentos');
+      document.getElementById('tabBtnComissoes').classList.toggle('active', tab === 'comissoes');
+      document.getElementById('sectionPagamentos').style.display = tab === 'pagamentos' ? 'block' : 'none';
+      document.getElementById('sectionComissoes').style.display = tab === 'comissoes' ? 'block' : 'none';
+    }
+
+    function populateEmpresasSelect() {
+      const sel = document.getElementById('selEmpresa');
+      sel.innerHTML = todasEmpresas.map(e => `<option value="${e.id}">${e.nome} (${e.nif || 'Sem NIF'})</option>`).join('');
+    }
+
+    function openModalNovoPagamento() {
+      document.getElementById('inpDataPagamento').value = new Date().toISOString().split('T')[0];
+      document.getElementById('modalPagamento').style.display = 'flex';
+    }
+
+    function closeModalNovoPagamento() {
+      document.getElementById('modalPagamento').style.display = 'none';
+    }
+
+    document.getElementById('formNovoPagamento').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const empresa_id = document.getElementById('selEmpresa').value;
+      const valor_pago = document.getElementById('inpValorPago').value;
+      const data_pagamento = document.getElementById('inpDataPagamento').value;
+
+      try {
+        await window.GEF.db.registrarPagamentoEmpresa({ empresa_id, valor_pago, data_pagamento });
+        await window.GEF.db.registrarAuditoria({
+          empresa_id,
+          usuario_id: currentUser.id,
+          acao: 'PAGAMENTO_EMPRESA_REGISTRADO',
+          tabela_afetada: 'pagamentos_empresa',
+          detalhes: { valor_pago, data_pagamento }
+        });
+        window.GEF.showToast('Pagamento registrado com sucesso!', 'success');
+        closeModalNovoPagamento();
+        await loadData();
+      } catch (err) {
+        window.GEF.showToast('Erro ao registrar pagamento: ' + err.message, 'error');
+      }
+    });
+
+    // Inicialização
+    loadData();
+    lucide.createIcons();
+  </script>
+</body>
+</html>
