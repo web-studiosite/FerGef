@@ -6,8 +6,8 @@
 // ==========================================
 // 1. CONFIGURAÇÃO SUPABASE ÚNICA
 // ==========================================
-const SUPABASE_URL = 'SUA_URL';
-const SUPABASE_KEY = 'SUA_KEY';
+const SUPABASE_URL = 'https://cxhpmexiohzxgokuxajk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4aHBtZXhpb2h6eGdva3V4YWprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5NjI1MzUsImV4cCI6MjEwNDUzODUzNX0.XNS-fheKlqmnvn9YlCaO5us79AY4yt_nIThDbCx_sFM';
 
 // Suporta credenciais salvas dinamicamente em tempo de teste sem alterar o arquivo
 const SAVED_URL = localStorage.getItem('GEF_CUSTOM_SUPABASE_URL');
